@@ -1,9 +1,27 @@
 const express = require('express');
-
+const fs = require('fs');
 const mongodb = require('./connection');
-const user = require('./model/user');
+const multer = require('multer');
+
+var imageFileName;
+
+const storage = multer.diskStorage({
+    destination: function(req, file, cb) {
+        cb(null, './uploads/')
+    },
+    filename: function(req, file, cb) {
+        imageFileName = file.originalname;
+        cb(null, file.originalname);
+    },
+});
+
+const upload = multer({
+    storage: storage,
+});
 
 const userModel = require('./model/user');
+const carModel = require('./model/car');
+const imageModel = require('./model/image');
 
 const app = express();
 
@@ -11,6 +29,11 @@ app.use(express.json());
 
 app.get("/", (req, res)=>{
     res.send("<h1>Connected</h1>");
+});
+
+app.post("/upload", upload.single('image') , (req, res, next) => {
+    console.log(imageFileName);
+    res.send("Image uploaded");
 });
 
 app.post("/login", (req, res) => {
@@ -22,7 +45,7 @@ app.post("/login", (req, res) => {
             res.status(500).send("Error getting user from database");
         }else{
             if(doc && doc.password == password) {
-                res.status(200).json({"name": doc.name, "email" : doc.email, "password": doc.password});
+                res.status(200).json({"name": doc.name, "email" : doc.email, "password": doc.password, "user_type": doc.user_type});
             }else{
                 res.status(401).send('Invalid Login');
             }
@@ -40,14 +63,56 @@ app.get("/drivers/:name", (req, res) => {
     });
 });
 
+app.get("/car_details/:email", (req, res) => {
+    carModel.findOne({"email" : req.params.email}, (err, doc) => {
+        if(err) {
+            res.send("Error fetching name");
+        }else{
+            if(doc){
+                res.status(200).send(doc);
+            }else{
+                res.status(204).send();
+            }
+            
+        }
+    });
+});
+
+app.post("/save_car_details", (req, res) => {
+    email = req.body.email;
+    carName = req.body.name;
+    reg_no = req.body.reg_no;
+
+    carModel.findOne({"email" : email}, (err, doc) => {
+        if(err) {
+            res.status(500).send("Error saving car details");
+        }else{
+            if(doc){
+                res.status(409).send("Car details already exist for " + email);
+            }else{
+                const car = new carModel();
+                car.name = carName;
+                car.email = email;
+                car.reg_no = reg_no;
+                car.images = [];
+                car.save((err) => {
+                    if(err){
+                        res.status(500).send("Car details saving failed.");
+                    }else{
+                        res.status(201).send("Car details saved.");
+                    }
+                });
+            }
+        }
+    });
+
+});
+
 app.post("/signup",(req, res) => {
     username = req.body.name;
+    user_type = req.body.user_type;
     email = req.body.email;
     password = req.body.password;
-
-    // console.log(username);
-    // console.log(email);
-    // console.log(password);
 
     userModel.findOne({"email" : email},(err, doc) => {
         if(err){
@@ -59,6 +124,7 @@ app.post("/signup",(req, res) => {
                 const user = new userModel();
                 user.name = username;
                 user.email = email;
+                user.user_type = user_type;
                 user.password = password;
                 user.save((err) => {
                     if(err){
