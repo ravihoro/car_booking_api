@@ -21,6 +21,7 @@ const upload = multer({
 
 const userModel = require('./model/user');
 const carModel = require('./model/car');
+const { response } = require('express');
 
 const app = express();
 
@@ -50,6 +51,19 @@ app.post("/login", (req, res) => {
             }
         }
     });
+});
+
+app.get("/getImage/:imageName", (req, res) => {
+    var dir = __dirname.substr(0,40);
+    var path = dir +"uploads\\" + req.params.imageName;
+    res.sendFile(path);
+    // fs.stat(path, (exists) => {
+    //     if(exists){
+
+    //     }else{
+    //         response.status(400).send("File does not exist");
+    //     }
+    // });
 });
 
 app.get("/drivers/:name", (req, res) => {
