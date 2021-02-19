@@ -7,7 +7,7 @@ var imageFileName;
 
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        cb(null, './uploads/')
+        cb(null, '../uploads/')
     },
     filename: function(req, file, cb) {
         imageFileName = file.originalname;
@@ -21,7 +21,6 @@ const upload = multer({
 
 const userModel = require('./model/user');
 const carModel = require('./model/car');
-const imageModel = require('./model/image');
 
 const app = express();
 
@@ -82,23 +81,29 @@ app.post("/save_car_details", (req, res) => {
     email = req.body.email;
     carName = req.body.name;
     reg_no = req.body.reg_no;
+    images = req.body.images;
 
     carModel.findOne({"email" : email}, (err, doc) => {
         if(err) {
+            console.log(err);
             res.status(500).send("Error saving car details");
         }else{
             if(doc){
+                console.log("Car details already exist for " + email);
                 res.status(409).send("Car details already exist for " + email);
             }else{
                 const car = new carModel();
                 car.name = carName;
                 car.email = email;
                 car.reg_no = reg_no;
-                car.images = [];
+                car.images = images;
                 car.save((err) => {
                     if(err){
+                        console.log(err);
+                        console.log("Car details saving failed.");
                         res.status(500).send("Car details saving failed.");
                     }else{
+                        console.log("Car details saved.");
                         res.status(201).send("Car details saved.");
                     }
                 });
