@@ -21,7 +21,7 @@ const upload = multer({
 
 const userModel = require('./model/user');
 const carModel = require('./model/car');
-const { response } = require('express');
+const bookingModel = require('./model/booking');
 
 const app = express();
 
@@ -30,6 +30,8 @@ app.use(express.json());
 app.get("/", (req, res)=>{
     res.send("<h1>Connected</h1>");
 });
+
+
 
 app.post("/upload", upload.single('image') , (req, res, next) => {
     console.log(imageFileName);
@@ -72,6 +74,39 @@ app.get("/drivers/:name", (req, res) => {
             res.send("Error fetching name");
         }else{
             res.send(docs);
+        }
+    });
+});
+
+app.get("/driver_bookings/:email/:date", (req, res) => {
+    bookingModel.find({"email": req.params.email,'date': {$gte: req.params.date}}, (err,docs) => {
+        if(err){
+            res.send(err);
+        }else{
+            res.send(docs);
+        }
+    });
+});
+
+app.post("/driver_bookings", (req, res) => {
+    var email = req.body.email;
+    var customer_email = req.body.customer_email;
+    var origin = req.body.origin;
+    var destination = req.body.destination;
+    var status = req.body.status;
+    var date = req.body.date;
+    const booking = new bookingModel();
+    booking.email = email
+    booking.customer_email = customer_email;
+    booking.origin = origin;
+    booking.destination = destination;
+    booking.status = status;
+    booking.date = date;
+    booking.save((err) => {
+        if(err){
+            res.send(err);
+        }else{
+            res.send("Saved");
         }
     });
 });
