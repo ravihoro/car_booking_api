@@ -31,8 +31,6 @@ app.get("/", (req, res)=>{
     res.send("<h1>Connected</h1>");
 });
 
-
-
 app.post("/upload", upload.single('image') , (req, res, next) => {
     console.log(imageFileName);
     res.send("Image uploaded");
@@ -59,13 +57,6 @@ app.get("/getImage/:imageName", (req, res) => {
     var dir = __dirname.substr(0,40);
     var path = dir +"uploads\\" + req.params.imageName;
     res.sendFile(path);
-    // fs.stat(path, (exists) => {
-    //     if(exists){
-
-    //     }else{
-    //         response.status(400).send("File does not exist");
-    //     }
-    // });
 });
 
 app.get("/drivers/:name", (req, res) => {
@@ -78,8 +69,9 @@ app.get("/drivers/:name", (req, res) => {
     });
 });
 
-app.get("/driver_bookings/:email/:date", (req, res) => {
-    bookingModel.find({"email": req.params.email,'date': {$gte: req.params.date}}, (err,docs) => {
+app.get("/driver_bookings_date/:email/:date", (req, res) => {
+    var date = new Date(req.params.date);
+    bookingModel.find({"email": req.params.email,"date": {$gt:date}, "status":"accepted"},{'date' : 1}, (err,docs) => {
         if(err){
             res.send(err);
         }else{
@@ -88,20 +80,37 @@ app.get("/driver_bookings/:email/:date", (req, res) => {
     });
 });
 
+app.get("/driver_bookings/:email/:status/:date?", (req, res) => {
+    if(req.params.date){
+        var date = new Date(req.params.date);
+        bookingModel.find({"email": req.params.email,"status" : req.params.status,"date": {$gt:date}}, (err,docs) => {
+            if(err){
+                res.send(err);
+            }else{
+                res.send(docs);
+            }
+        }).sort("date");
+    }else{
+        bookingModel.find({"email": req.params.email, "status" : req.params.status}, (err, docs) => {
+            if(err){
+                res.send(err);
+            }else{
+                res.send(docs);
+            }
+        }).sort("date").limit(10);
+    }
+    
+});
+
 app.post("/driver_bookings", (req, res) => {
-    var email = req.body.email;
-    var customer_email = req.body.customer_email;
-    var origin = req.body.origin;
-    var destination = req.body.destination;
-    var status = req.body.status;
-    var date = req.body.date;
     const booking = new bookingModel();
-    booking.email = email
-    booking.customer_email = customer_email;
-    booking.origin = origin;
-    booking.destination = destination;
-    booking.status = status;
-    booking.date = date;
+    booking.email = req.body.email;
+    booking.customer_name = req.body.customer_name;
+    booking.customer_email = req.body.customer_email;
+    booking.origin = req.body.origin;
+    booking.destination = req.body.destination;
+    booking.status = req.body.status;
+    booking.date = req.body.date;
     booking.save((err) => {
         if(err){
             res.send(err);
@@ -124,6 +133,51 @@ app.get("/car_details/:email", (req, res) => {
             
         }
     });
+});
+
+app.post("/make_booking", (req, res) => {
+    console.log("Booking function called");
+    var email = req.body.email;
+    var customer_email = req.body.customer_email;
+    var customer_name = req.body.customer_name;
+    var origin = req.body.origin;
+    var destination = req.body.destination;
+    var status = req.body.status;
+    var date = req.body.date;
+    var date1 = new Date(date);
+    date1 = date1.toISOString();
+
+    bookingModel.findOne({"email" : email, "customer_email": customer_email, "date" : date}, (err, doc) => {
+        if(err) {
+            console.log(err);
+            res.status(500).send("Error saving car details");
+        }else{
+            if(doc){
+                console.log("Duplicate booking for same date.");
+                res.status(409).send("Duplicate booking for same date.");
+            }else{
+                const booking = new bookingModel();
+                booking.email = email;
+                booking.customer_email = customer_email;
+                booking.customer_name = customer_name;
+                booking.origin = origin;
+                booking.destination = destination;
+                booking.status = status;
+                booking.date = date;
+                booking.save((err) => {
+                    if(err){
+                        console.log(err);
+                        console.log("Booking failed.");
+                        res.status(500).send("Booking failed.");
+                    }else{
+                        console.log("Booking made.");
+                        res.status(201).send("Booking made.");
+                    }
+                });
+            }
+        }
+    });
+
 });
 
 app.post("/save_car_details", (req, res) => {
