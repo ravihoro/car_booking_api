@@ -102,6 +102,29 @@ app.get("/driver_bookings/:email/:status/:date?", (req, res) => {
     
 });
 
+app.put('/update_booking_status', async (req, res) => {
+    var email = req.body.email;
+    var customer_email = req.body.customer_email;
+    var date = req.body.date;
+    var status = req.body.status;
+    const booking = await bookingModel.findOne({'email': email, 'customer_email': customer_email, 'date': date});
+    booking.status = status;
+    booking.save((err) => {
+        if(err) {
+            res.send("Error updating value");
+        }
+    });
+    if(status == 'accepted'){
+        console.log("rejecting others");
+        bookingModel.updateMany({'email': email,'date': date, 'status': 'unknown'},{'status':'rejected'},(err, docs) =>{
+            if(err){
+                res.send("Error");
+            }
+        });
+    }
+    res.status(200).send("Successful");
+});
+
 app.post("/driver_bookings", (req, res) => {
     const booking = new bookingModel();
     booking.email = req.body.email;
