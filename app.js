@@ -80,6 +80,8 @@ app.get("/driver_bookings_date/:email/:date", (req, res) => {
     });
 });
 
+
+
 app.get("/driver_bookings/:email/:status/:date?", (req, res) => {
     if(req.params.date){
         var date = new Date(req.params.date);
@@ -92,6 +94,28 @@ app.get("/driver_bookings/:email/:status/:date?", (req, res) => {
         }).sort("date");
     }else{
         bookingModel.find({"email": req.params.email, "status" : req.params.status}, (err, docs) => {
+            if(err){
+                res.send(err);
+            }else{
+                res.send(docs);
+            }
+        }).sort("date").limit(10);
+    }
+    
+});
+
+app.get("/customer_bookings/:customerEmail/:status/:date?", (req, res) => {
+    if(req.params.date){
+        var date = new Date(req.params.date);
+        bookingModel.find({"customer_email": req.params.customerEmail,"status" : req.params.status,"date": {$gt:date}}, (err,docs) => {
+            if(err){
+                res.send(err);
+            }else{
+                res.send(docs);
+            }
+        }).sort("date");
+    }else{
+        bookingModel.find({"customer_email": req.params.customerEmail, "status" : req.params.status}, (err, docs) => {
             if(err){
                 res.send(err);
             }else{
@@ -161,6 +185,7 @@ app.get("/car_details/:email", (req, res) => {
 app.post("/make_booking", (req, res) => {
     console.log("Booking function called");
     var email = req.body.email;
+    var name = req.body.name;
     var customer_email = req.body.customer_email;
     var customer_name = req.body.customer_name;
     var origin = req.body.origin;
@@ -181,6 +206,7 @@ app.post("/make_booking", (req, res) => {
             }else{
                 const booking = new bookingModel();
                 booking.email = email;
+                booking.name = name;
                 booking.customer_email = customer_email;
                 booking.customer_name = customer_name;
                 booking.origin = origin;
@@ -201,6 +227,16 @@ app.post("/make_booking", (req, res) => {
         }
     });
 
+});
+
+app.delete("/delete_booking/:email/:customerEmail/:date/:status", (req, res) => {
+    bookingModel.deleteOne({'email': req.params.email, 'customer_email': req.params.customerEmail, 'date': req.params.date, 'status' : req.params.status}, (err) => {
+        if(err){
+            res.send('Error deleting');
+        }else{
+            res.status(200).send('Deletion successful');
+        }
+    });
 });
 
 app.post("/save_car_details", (req, res) => {
