@@ -14,5 +14,5 @@ Please refer to this link for integration with a Flutter app: https://github.com
 - Supports saving/fetching images.
 
 ## Tools Used
-- NodeJS
+- Node.js
 - MongoDB
